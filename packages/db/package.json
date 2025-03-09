@@ -30,12 +30,7 @@
     "with-env": "dotenv -e ../../.env --"
   },
   "dependencies": {
-    "@vercel/postgres": "^0.10.0",
-    "dotenv": "^16.4.7",
-    "drizzle-orm": "^0.38.4",
-    "drizzle-zod": "^0.6.1",
-    "firebase": "^11.4.0",
-    "firebase-admin": "^13.2.0",
+    "mongoose": "^8.12.1",
     "zod": "catalog:"
   },
   "devDependencies": {
@@ -43,7 +38,6 @@
     "@acme/prettier-config": "workspace:*",
     "@acme/tsconfig": "workspace:*",
     "dotenv-cli": "^8.0.0",
-    "drizzle-kit": "^0.30.2",
     "eslint": "catalog:",
     "prettier": "catalog:",
     "typescript": "catalog:"
