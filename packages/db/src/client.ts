@@ -1,19 +1,19 @@
 // firebaseClient.ts
-import firebase from "firebase/app";
+import dotenv from "dotenv";
+import { initializeApp } from "firebase/app";
+import { getFirestore } from "firebase/firestore/lite";
 
-import "firebase/firestore"; // or any other services you need
+dotenv.config();
 
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  apiKey: process.env.FB_API_KEY ?? "DEFAULT",
+  authDomain: process.env.FB_AUTH_DOMAIN ?? "DEFAULT",
+  projectId: process.env.FB_PROJECT_ID ?? "DEFAULT",
+  storageBucket: process.env.FB_STORAGE_BUKET ?? "DEFAULT",
+  messagingSenderId: process.env.FB_MESSAGING_SENDER_ID ?? "DEFAULT",
+  appId: process.env.FB_APP_ID ?? "DEFAULT",
+  measurementId: process.env.FB_MEASUREMENT_ID ?? "DEFAULT",
 };
 
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
-
-export const firestore = firebase.firestore();
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
