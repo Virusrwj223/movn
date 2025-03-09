@@ -1,2 +1,3 @@
-export * from "drizzle-orm/sql";
-export { alias } from "drizzle-orm/pg-core";
+import User from "./models/User";
+
+export default User;

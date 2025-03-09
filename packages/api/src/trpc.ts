@@ -1,145 +1,130 @@
-/**
- * YOU PROBABLY DON'T NEED TO EDIT THIS FILE, UNLESS:
- * 1. You want to modify request context (see Part 1)
- * 2. You want to create a new middleware or type of procedure (see Part 3)
- *
- * tl;dr - this is where all the tRPC server stuff is created and plugged in.
- * The pieces you will need to use are documented accordingly near the end
- */
-import { initTRPC, TRPCError } from "@trpc/server";
+import type { CreateNextContextOptions } from "@trpc/server/adapters/next";
+import { initTRPC } from "@trpc/server";
 import superjson from "superjson";
-import { ZodError } from "zod";
 
-import type { Session } from "@acme/auth";
-import { auth, validateToken } from "@acme/auth";
-import { db } from "@acme/db/client";
+// import User from "@acme/db";
 
-/**
- * Isomorphic Session getter for API requests
- * - Expo requests will have a session token in the Authorization header
- * - Next.js requests will have a session token in cookies
- */
-const isomorphicGetSession = async (headers: Headers) => {
-  const authToken = headers.get("Authorization") ?? null;
-  if (authToken) return validateToken(authToken);
-  return auth();
-};
+// import { errorThrower404 } from "@acme/error";
+// import { isValidEmailSignature, isValidSignature } from "@acme/logic";
 
-/**
- * 1. CONTEXT
- *
- * This section defines the "contexts" that are available in the backend API.
- *
- * These allow you to access things when processing a request, like the database, the session, etc.
- *
- * This helper generates the "internals" for a tRPC context. The API handler and RSC clients each
- * wrap this and provides the required context.
- *
- * @see https://trpc.io/docs/server/context
- */
-export const createTRPCContext = async (opts: {
-  headers: Headers;
-  session: Session | null;
-}) => {
-  const authToken = opts.headers.get("Authorization") ?? null;
-  const session = await isomorphicGetSession(opts.headers);
+// import { handleBiErrorThrower } from "./utility/handleBiErrorThrower";
 
-  const source = opts.headers.get("x-trpc-source") ?? "unknown";
-  console.log(">>> tRPC Request from", source, "by", session?.user);
-
+export const createContext = (_opts: CreateNextContextOptions) => {
+  const { req, res } = _opts;
   return {
-    session,
-    db,
-    token: authToken,
+    req,
+    res,
   };
 };
 
-/**
- * 2. INITIALIZATION
- *
- * This is where the trpc api is initialized, connecting the context and
- * transformer
- */
-const t = initTRPC.context<typeof createTRPCContext>().create({
+type Context = Awaited<ReturnType<typeof createContext>>;
+const t = initTRPC.context<Context>().create({
   transformer: superjson,
-  errorFormatter: ({ shape, error }) => ({
-    ...shape,
-    data: {
-      ...shape.data,
-      zodError: error.cause instanceof ZodError ? error.cause.flatten() : null,
-    },
-  }),
 });
-
-/**
- * Create a server-side caller
- * @see https://trpc.io/docs/server/server-side-calls
- */
 export const createCallerFactory = t.createCallerFactory;
-
-/**
- * 3. ROUTER & PROCEDURE (THE IMPORTANT BIT)
- *
- * These are the pieces you use to build your tRPC API. You should import these
- * a lot in the /src/server/api/routers folder
- */
-
-/**
- * This is how you create new routers and subrouters in your tRPC API
- * @see https://trpc.io/docs/router
- */
 export const createTRPCRouter = t.router;
+export const publicProcedure = t.procedure;
 
-/**
- * Middleware for timing procedure execution and adding an articifial delay in development.
- *
- * You can remove this if you don't like it, but it can help catch unwanted waterfalls by simulating
- * network latency that would occur in production but not in local development.
- */
-const timingMiddleware = t.middleware(async ({ next, path }) => {
-  const start = Date.now();
+// const isAuthed = t.middleware(async (opts) => {
+//   try {
+//     const { ctx, next } = opts;
+//     const token = ctx.req.headers.authorization?.split(" ")[1];
+//     if (!token)
+//       throw new TRPCError({ code: "UNAUTHORIZED", message: "JWT:NOTOKEN" });
 
-  if (t._config.isDev) {
-    // artificial delay in dev 100-500ms
-    const waitMs = Math.floor(Math.random() * 400) + 100;
-    await new Promise((resolve) => setTimeout(resolve, waitMs));
-  }
+//     const parsedToken = isValidSignature(token.toString());
 
-  const result = await next();
+//     const user = await User.findById(parsedToken.userid);
+//     if (user?.deletedOn != null) {
+//       throw new TRPCError({
+//         code: "UNAUTHORIZED",
+//         message: `DELETEDUSER:NOTAUTHORISED`,
+//       });
+//     }
+//     return next({
+//       ctx: {
+//         parsedToken,
+//       },
+//     });
+//   } catch (e) {
+//     if (e instanceof TRPCError) {
+//       throw new TRPCError({
+//         code: e.code,
+//         message: e.message,
+//       });
+//     } else {
+//       throw new TRPCError({
+//         code: "UNAUTHORIZED",
+//         message: `JWT:INTERNALSERVERERROR`,
+//       });
+//     }
+//   }
+// });
 
-  const end = Date.now();
-  console.log(`[TRPC] ${path} took ${end - start}ms to execute`);
+// export const privateProcedure = t.procedure.use(isAuthed);
 
-  return result;
-});
+// const isEmailAuthed = t.middleware((opts) => {
+//   try {
+//     const { ctx, next } = opts;
+//     const token = ctx.req.headers.authorization?.split(" ")[1];
+//     if (!token)
+//       throw new TRPCError({ code: "UNAUTHORIZED", message: "JWT:NOTOKEN" });
 
-/**
- * Public (unauthed) procedure
- *
- * This is the base piece you use to build new queries and mutations on your
- * tRPC API. It does not guarantee that a user querying is authorized, but you
- * can still access user session data if they are logged in
- */
-export const publicProcedure = t.procedure.use(timingMiddleware);
+//     const parsedToken = isValidEmailSignature(token.toString());
 
-/**
- * Protected (authenticated) procedure
- *
- * If you want a query or mutation to ONLY be accessible to logged in users, use this. It verifies
- * the session is valid and guarantees `ctx.session.user` is not null.
- *
- * @see https://trpc.io/docs/procedures
- */
-export const protectedProcedure = t.procedure
-  .use(timingMiddleware)
-  .use(({ ctx, next }) => {
-    if (!ctx.session?.user) {
-      throw new TRPCError({ code: "UNAUTHORIZED" });
-    }
-    return next({
-      ctx: {
-        // infers the `session` as non-nullable
-        session: { ...ctx.session, user: ctx.session.user },
-      },
-    });
-  });
+//     return next({
+//       ctx: {
+//         parsedToken,
+//       },
+//     });
+//   } catch (e) {
+//     if (e instanceof TRPCError) {
+//       throw new TRPCError({
+//         code: e.code,
+//         message: e.message,
+//       });
+//     } else {
+//       throw new TRPCError({
+//         code: "UNAUTHORIZED",
+//         message: `JWT:INTERNALSERVERERROR`,
+//       });
+//     }
+//   }
+// });
+
+// export const privateEmailProcedure = t.procedure.use(isEmailAuthed);
+
+// const isAdmin = t.middleware(async (opts) => {
+//   try {
+//     const { ctx, next } = opts;
+//     const token = ctx.req.headers.authorization?.split(" ")[1];
+//     if (!token)
+//       throw new TRPCError({ code: "UNAUTHORIZED", message: "JWT:NOTOKEN" });
+
+//     const parsedToken = isValidSignature(token.toString());
+
+//     const user = await User.findById(parsedToken.userid);
+//     if (user == null) throw new errorThrower404("ISADMIN").throwError();
+//     if (user.deletedOn != null) {
+//       throw new TRPCError({
+//         code: "UNAUTHORIZED",
+//         message: `DELETEDUSER:NOTAUTHORISED`,
+//       });
+//     }
+//     if (!user.isAdmin) {
+//       throw new TRPCError({
+//         code: "UNAUTHORIZED",
+//         message: `ISADMIN:NOTAUTHORISED`,
+//       });
+//     }
+//     return next({
+//       ctx: {
+//         parsedToken,
+//       },
+//     });
+//   } catch (err) {
+//     throw handleBiErrorThrower(err, "ISADMIN");
+//   }
+// });
+
+// export const adminProcedure = t.procedure.use(isAdmin);

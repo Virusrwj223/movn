@@ -242,15 +242,15 @@ importers:
       '@acme/auth':
         specifier: workspace:*
         version: link:../../packages/auth
+      '@acme/controller':
+        specifier: workspace:*
+        version: link:../../packages/controller
       '@acme/db':
         specifier: workspace:*
         version: link:../../packages/db
       '@acme/ui':
         specifier: workspace:*
         version: link:../../packages/ui
-      '@acme/validators':
-        specifier: workspace:*
-        version: link:../../packages/validators
       '@t3-oss/env-nextjs':
         specifier: ^0.12.0
         version: 0.12.0(typescript@5.7.3)(zod@3.24.1)
@@ -330,12 +330,12 @@ importers:
       '@acme/auth':
         specifier: workspace:*
         version: link:../auth
+      '@acme/controller':
+        specifier: workspace:*
+        version: link:../controller
       '@acme/db':
         specifier: workspace:*
         version: link:../db
-      '@acme/validators':
-        specifier: workspace:*
-        version: link:../validators
       '@trpc/server':
         specifier: 'catalog:'
         version: 11.0.0-rc.824(typescript@5.7.3)
@@ -407,6 +407,31 @@ importers:
       '@types/react':
         specifier: catalog:react19
         version: 19.0.10
+      eslint:
+        specifier: 'catalog:'
+        version: 9.19.0(jiti@2.4.2)
+      prettier:
+        specifier: 'catalog:'
+        version: 3.4.2
+      typescript:
+        specifier: 'catalog:'
+        version: 5.7.3
+
+  packages/controller:
+    dependencies:
+      zod:
+        specifier: 'catalog:'
+        version: 3.24.1
+    devDependencies:
+      '@acme/eslint-config':
+        specifier: workspace:*
+        version: link:../../tooling/eslint
+      '@acme/prettier-config':
+        specifier: workspace:*
+        version: link:../../tooling/prettier
+      '@acme/tsconfig':
+        specifier: workspace:*
+        version: link:../../tooling/typescript
       eslint:
         specifier: 'catalog:'
         version: 9.19.0(jiti@2.4.2)
@@ -505,31 +530,6 @@ importers:
       zod:
         specifier: 'catalog:'
         version: 3.24.1
-
-  packages/validators:
-    dependencies:
-      zod:
-        specifier: 'catalog:'
-        version: 3.24.1
-    devDependencies:
-      '@acme/eslint-config':
-        specifier: workspace:*
-        version: link:../../tooling/eslint
-      '@acme/prettier-config':
-        specifier: workspace:*
-        version: link:../../tooling/prettier
-      '@acme/tsconfig':
-        specifier: workspace:*
-        version: link:../../tooling/typescript
-      eslint:
-        specifier: 'catalog:'
-        version: 9.19.0(jiti@2.4.2)
-      prettier:
-        specifier: 'catalog:'
-        version: 3.4.2
-      typescript:
-        specifier: 'catalog:'
-        version: 5.7.3
 
   tooling/eslint:
     dependencies:
